@@ -25,7 +25,6 @@ DATABASE: List[MediaItem] = []
 
 def fetch_free_public_movies():
     try:
-        # Puxa automaticamente os fluxos e logotipos da lista pública de animações
         response = httpx.get("https://iptv-org.github.io/iptv/categories/animation.m3u", timeout=10.0)
         if response.status_code == 200:
             lines = response.text.split("\n")
@@ -45,38 +44,43 @@ def fetch_free_public_movies():
                         current_title = line.split(",")[-1].strip()
                 elif line and not line.startswith("#"):
                     stream_url = line
+                    
+                    # Garante um título amigável de desenho caso venha muito cru
+                    if not current_title or current_title.startswith("http"):
+                        current_title = f"Canal Desenho Animado {idx}"
+
                     item = MediaItem(
                         id=idx,
                         title=current_title,
                         type="movie",
-                        genre=["Animação", "Família"],
+                        genre=["Animação", "Desenho"],
                         release_year=2024,
-                        rating=8.0,
-                        synopsis="Transmissão contínua CinePayload - Programação automática.",
-                        cast=["Elenco Animado"],
+                        rating=8.5,
+                        synopsis="Transmissão ao vivo de desenhos animados e programação infantil.",
+                        cast=["Turma Animada"],
                         episodes=None,
                         stream_url=stream_url,
                         logo_url=current_logo
                     )
                     DATABASE.append(item)
                     idx += 1
-                    if idx > 40:
+                    if idx > 30:
                         break
     except Exception:
         pass
         
-    # Fallback se a lista externa falhar
+    # Fallback focado em animação se falhar
     if not DATABASE:
         DATABASE.append(
             MediaItem(
                 id=1, 
-                title="Clássico Animado 1", 
+                title="Canal Desenho Animado 24h", 
                 type="movie", 
-                genre=["Animation"], 
-                release_year=2020, 
-                rating=8.0, 
-                synopsis="Desenho clássico em transmissão contínua.", 
-                cast=["Personagem Principal"],
+                genre=["Animation", "Kids"], 
+                release_year=2024, 
+                rating=8.5, 
+                synopsis="Desenhos clássicos e modernos em transmissão contínua.", 
+                cast=["Personagens Animados"],
                 stream_url="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
                 logo_url=""
             )
