@@ -1,6 +1,6 @@
-import httpx
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
+import httpx
 
 class MediaItem(BaseModel):
     id: int
@@ -12,55 +12,78 @@ class MediaItem(BaseModel):
     synopsis: str
     cast: List[str]
     episodes: Optional[int] = None
+    stream_url: Optional[str] = None
+    logo_url: Optional[str] = None
 
 class SiteLogo(BaseModel):
-    site_name: str = "CineVerse Oficial"
+    site_name: str = "CinePayload Oficial"
     logo_url: str = "https://i.postimg.cc/nrMbmhcQ/Gemini-Generated-Image-jeh7xqjeh7xqjeh7.jpg"
     display_mode: str = "active_break_screen"
-    alt_text: str = "Aguardando próxima transmissão - Intervalo"
+    alt_text: str = "Aguardando próxima transmissão - Intervalo CinePayload"
 
 DATABASE: List[MediaItem] = []
 
 def fetch_free_public_movies():
     try:
-        response = httpx.get("https://api.tvmaze.com/shows", timeout=10.0)
+        # Puxa automaticamente os fluxos e logotipos da lista pública de animações
+        response = httpx.get("https://iptv-org.github.io/iptv/categories/animation.m3u", timeout=10.0)
         if response.status_code == 200:
-            shows = response.json()
-            for idx, show in enumerate(shows[:50], start=1):
-                premiered = show.get("premiered")
-                year = int(premiered[:4]) if premiered and len(premiered) >= 4 else 2020
-                rating_data = show.get("rating", {})
-                rating = float(rating_data.get("average", 7.5)) if rating_data and rating_data.get("average") else 7.5
-                
-                summary = show.get("summary", "Sem sinopse disponível.")
-                if summary:
-                    summary = summary.replace("<p>", "").replace("</p>", "").replace("<b>", "").replace("</b>", "")
-                
-                item = MediaItem(
-                    id=idx,
-                    title=show.get("name", "Desconhecido"),
-                    type="series",
-                    genre=show.get("genres", ["Drama"]),
-                    release_year=year,
-                    rating=rating,
-                    synopsis=summary,
-                    cast=["Elenco padrão TVmaze"],
-                    episodes=show.get("averageRuntime", 45)
-                )
-                DATABASE.append(item)
+            lines = response.text.split("\n")
+            idx = 1
+            current_title = "Desenho Animado"
+            current_logo = "https://via.placeholder.com/300x450?text=CinePayload"
+            
+            for line in lines:
+                line = line.strip()
+                if line.startswith("#EXTINF"):
+                    if 'tvg-logo="' in line:
+                        try:
+                            current_logo = line.split('tvg-logo="')[1].split('"')[0]
+                        except:
+                            pass
+                    if "," in line:
+                        current_title = line.split(",")[-1].strip()
+                elif line and not line.startswith("#"):
+                    stream_url = line
+                    item = MediaItem(
+                        id=idx,
+                        title=current_title,
+                        type="movie",
+                        genre=["Animação", "Família"],
+                        release_year=2024,
+                        rating=8.0,
+                        synopsis="Transmissão contínua CinePayload - Programação automática.",
+                        cast=["Elenco Animado"],
+                        episodes=None,
+                        stream_url=stream_url,
+                        logo_url=current_logo
+                    )
+                    DATABASE.append(item)
+                    idx += 1
+                    if idx > 40:
+                        break
     except Exception:
+        pass
+        
+    # Fallback se a lista externa falhar
+    if not DATABASE:
         DATABASE.append(
-            MediaItem(id=1, title="Inception", type="movie", genre=["Sci-Fi"], release_year=2010, rating=8.8, synopsis="A thief who steals corporate secrets.", cast=["Leonardo DiCaprio"])
+            MediaItem(
+                id=1, 
+                title="Clássico Animado 1", 
+                type="movie", 
+                genre=["Animation"], 
+                release_year=2020, 
+                rating=8.0, 
+                synopsis="Desenho clássico em transmissão contínua.", 
+                cast=["Personagem Principal"],
+                stream_url="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+                logo_url=""
+            )
         )
 
 fetch_free_public_movies()
 
 CACHE_STORE: Dict[str, dict] = {}
-
-SCHEDULE_STORE: List[dict] = [
-    {"slot_id": 1, "start_time": "18:00", "end_time": "20:30", "media_id": 1, "title": "Under the Dome (Exemplo)", "status": "Scheduled"},
-    {"slot_id": 2, "start_time": "21:15", "end_time": "23:30", "media_id": 2, "title": "Person of Interest (Exemplo)", "status": "Scheduled"}
-]
-
+SCHEDULE_STORE: List[dict] = []
 SITE_LOGO_CONFIG = SiteLogo()
-ACTIVE_WEBSOCKETS: Set = set()
