@@ -45,7 +45,6 @@ def fetch_free_public_movies():
                 elif line and not line.startswith("#"):
                     stream_url = line
                     
-                    # Garante um título amigável de desenho caso venha muito cru
                     if not current_title or current_title.startswith("http"):
                         current_title = f"Canal Desenho Animado {idx}"
 
@@ -69,7 +68,6 @@ def fetch_free_public_movies():
     except Exception:
         pass
         
-    # Fallback focado em animação se falhar
     if not DATABASE:
         DATABASE.append(
             MediaItem(
