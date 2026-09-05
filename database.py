@@ -1,29 +1,12 @@
-from typing import Dict, List, Optional
-from pydantic import BaseModel, Field
+from typing import List, Dict, Optional
 import httpx
-
-class MediaItem(BaseModel):
-    id: int
-    title: str
-    type: str = Field(..., description="'movie' ou 'series'")
-    genre: List[str]
-    release_year: int
-    rating: float
-    synopsis: str
-    cast: List[str]
-    episodes: Optional[int] = None
-    stream_url: Optional[str] = None
-    logo_url: Optional[str] = None
-
-class SiteLogo(BaseModel):
-    site_name: str = "CinePayload Oficial"
-    logo_url: str = "https://i.postimg.cc/nrMbmhcQ/Gemini-Generated-Image-jeh7xqjeh7xqjeh7.jpg"
-    display_mode: str = "active_break_screen"
-    alt_text: str = "Aguardando próxima transmissão - Intervalo CinePayload"
+from schemas import MediaItem, SiteLogo
 
 DATABASE: List[MediaItem] = []
 
-def fetch_free_public_movies():
+def fetch_animation_streams():
+    global DATABASE
+    DATABASE.clear()
     try:
         response = httpx.get("https://iptv-org.github.io/iptv/categories/animation.m3u", timeout=10.0)
         if response.status_code == 200:
@@ -46,16 +29,16 @@ def fetch_free_public_movies():
                     stream_url = line
                     
                     if not current_title or current_title.startswith("http"):
-                        current_title = f"Canal Desenho Animado {idx}"
+                        current_title = f"Canal Animação {idx}"
 
                     item = MediaItem(
                         id=idx,
                         title=current_title,
                         type="movie",
-                        genre=["Animação", "Desenho"],
+                        genre=["Animação", "Infantil"],
                         release_year=2024,
                         rating=8.5,
-                        synopsis="Transmissão ao vivo de desenhos animados e programação infantil.",
+                        synopsis="Transmissão contínua de desenhos animados e programação infantil 24h.",
                         cast=["Turma Animada"],
                         episodes=None,
                         stream_url=stream_url,
@@ -63,7 +46,7 @@ def fetch_free_public_movies():
                     )
                     DATABASE.append(item)
                     idx += 1
-                    if idx > 30:
+                    if idx > 40:
                         break
     except Exception:
         pass
@@ -84,7 +67,7 @@ def fetch_free_public_movies():
             )
         )
 
-fetch_free_public_movies()
+fetch_animation_streams()
 
 CACHE_STORE: Dict[str, dict] = {}
 SCHEDULE_STORE: List[dict] = []
